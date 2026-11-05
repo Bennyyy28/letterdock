@@ -1,0 +1,10 @@
+"use client";
+import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, Mail, RefreshCw } from 'lucide-react';
+import type { MailStatus } from '../lib/mail-types';
+import styles from './connection-form.module.css';
+export function ConnectionForm() {
+  const [status,setStatus]=useState<MailStatus|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[retry,setRetry]=useState(0);
+  useEffect(()=>{const controller=new AbortController();setLoading(true);setError('');fetch('/api/status',{cache:'no-store',signal:controller.signal}).then(async r=>{if(r.status===401){window.location.assign('/login');return;}if(!r.ok)throw new Error();setStatus(await r.json());}).catch(()=>{if(!controller.signal.aborted)setError('Couldn’t check the connection.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();},[retry]);
+  return <main className={styles.shell}><a className={styles.brand} href="/"><span><Mail size={20}/></span>letterdock<span className={styles.period}>.</span></a><div className={styles.content}><section className={styles.card}><span className={styles.icon}><Mail size={24}/></span><h1>{loading?'Checking connection…':error?'Connection unavailable':status?.connected?'You’re connected':'Connect your inboxes'}</h1>{error&&<p role="alert">{error}</p>}{!loading&&!status?.connected&&<p>Set RESEND_API_KEY and RESEND_INBOXES in your server environment, then restart the app.</p>}<div className={styles.accounts}>{status?.mailboxes.map(box=><div className={styles.account} key={box.key}><span>{box.name.slice(0,1)}</span><div><strong>{box.name}</strong><small>{box.address}</small></div><Check size={16} aria-label="Configured"/></div>)}</div>{status?.connected&&<a className={styles.primary} href="/">Open inboxes<ArrowRight size={16}/></a>}<button className={styles.secondary} disabled={loading} onClick={()=>setRetry(v=>v+1)}><RefreshCw size={16}/>{loading?'Checking…':'Check connection'}</button><a className={styles.back} href="/"><ArrowLeft size={15}/>Back to inbox</a></section></div></main>;
+}
